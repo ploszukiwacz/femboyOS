@@ -14,7 +14,7 @@ jobs:
       run: docker build . --file buildenv/Dockerfile --tag femboyos:buildenv
 
     - name: Compile femboyOS
-      run: docker run --rm -v $(pwd):/root/env femboyos:buildenv make build-x86_64
+      run: docker run --rm -v $(pwd):/root/env femboyos:buildenv make build-x86_64 && chmod 777 dist/ -R
 
     - name: Checksum
       run: |
