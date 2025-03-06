@@ -19,6 +19,8 @@ jobs:
     - name: Make release
       uses: softprops/action-gh-release@v2.1.0
       with:
+        tag_name: "v1.0 ALPHA"
+        name: "femboyOS v1.0 ALPHA"
         files: |
           dist/kernel.bin
           dist/kernel.iso
