@@ -7,6 +7,8 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GHT }}
 
     steps:
     - uses: actions/checkout@v4
@@ -14,7 +16,7 @@ jobs:
       run: docker build . --file buildenv/Dockerfile --tag femboyos:buildenv
 
     - name: Compile femboyOS
-      run: docker run --rm -v $(pwd):/root/env femboyos:buildenv make build-x86_64
+      run: docker run -v .:/root/env femboyos:buildenv make build-x86_64
 
     - name: Make release
       uses: softprops/action-gh-release@v2.1.0
