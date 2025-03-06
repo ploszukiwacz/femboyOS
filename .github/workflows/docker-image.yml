@@ -12,4 +12,4 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag femboyos-buildenv:$(date +%s)
+      run: docker build . --file buildenv/Dockerfile --tag femboyos-buildenv:$(date +%s)

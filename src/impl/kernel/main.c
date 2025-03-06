@@ -1,9 +1,8 @@
-#include "print.h"
-#include "timer.h"
-#include "interrupt.h"
-#include "keyboard.h"
-#include "cli.h"
-#include "port.h"
+#include "../../intf/print.h"
+#include "../../intf/timer.h"
+#include "../../intf/interrupt.h"
+#include "../../intf/keyboard.h"
+#include "../../intf/cli.h"
 
 void kernel_main() {
     print_clear();

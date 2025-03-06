@@ -1,8 +1,7 @@
-#include "cli.h"
-#include "print.h"
-#include "keyboard.h"
-#include "port.h"
-#include "timer.h"
+#include "../../intf/cli.h"
+#include "../../intf/print.h"
+#include "../../intf/keyboard.h"
+#include "../../intf/port.h"
 
 #define CLI_MAX_COMMAND_LENGTH 256
 #define CLI_HISTORY_SIZE 10

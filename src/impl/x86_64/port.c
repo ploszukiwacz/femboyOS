@@ -1,4 +1,4 @@
-#include "port.h"
+#include "../../intf/port.h"
 
 void port_byte_out(uint16_t port, uint8_t data) {
     __asm__("outb %0, %1" : : "a"(data), "Nd"(port));

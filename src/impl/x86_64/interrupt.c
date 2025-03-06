@@ -1,6 +1,6 @@
-#include "interrupt.h"
-#include "port.h"
-#include "pic.h"
+#include "../../intf/interrupt.h"
+#include "../../intf/port.h"
+#include "../../intf/pic.h"
 
 #define IDT_ENTRIES 256
 

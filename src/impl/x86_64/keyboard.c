@@ -1,7 +1,7 @@
-#include "keyboard.h"
-#include "interrupt.h"
-#include "port.h"
-#include "pic.h"
+#include "../../intf/keyboard.h"
+#include "../../intf/interrupt.h"
+#include "../../intf/port.h"
+#include "../../intf/pic.h"
 
 #define KEYBOARD_DATA_PORT     0x60
 #define KEYBOARD_STATUS_PORT   0x64

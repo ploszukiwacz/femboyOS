@@ -1,6 +1,6 @@
-#include "timer.h"
-#include "port.h"
-#include "interrupt.h"
+#include "../../intf/timer.h"
+#include "../../intf/port.h"
+#include "../../intf/interrupt.h"
 
 // PIT (Programmable Interval Timer) operates at 1.19 MHz
 #define PIT_FREQUENCY 1193182
