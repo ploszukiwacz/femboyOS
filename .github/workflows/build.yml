@@ -18,8 +18,8 @@ jobs:
 
     - name: Checksum
       run: |
-        sha256sum dist/kernel.bin > upload/sha256sum.txt
-        sha256sum dist/kernel.iso >> upload/sha256sum.txt
+        sha256sum dist/kernel.bin > dist/sha256sum.txt
+        sha256sum dist/kernel.iso >> dist/sha256sum.txt
 
     - name: Make release
       uses: softprops/action-gh-release@v2.1.0
@@ -27,4 +27,4 @@ jobs:
         files: |
           dist/kernel.bin
           dist/kernel.iso
-          upload/sha256sum.txt
+          dist/sha256sum.txt
