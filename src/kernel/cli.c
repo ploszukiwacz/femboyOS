@@ -10,6 +10,7 @@
 #include "../cmds/fortune.h"
 #include "../cmds/man.h"
 #include "../cmds/random.h"
+#include "../cmds/dance.h"
 
 #define CLI_MAX_CMD_LENGTH 256
 #define CLI_HISTORY_SIZE 50
@@ -37,30 +38,16 @@ static CommandLine cli;
 #define NUM_ROWS 25
 #define NUM_COLS 80
 
-static int cursor_position = 0;  // Current cursor position within the command
-static bool insert_mode = true;  // Whether we're in insert mode or overwrite mode
+// static bool insert_mode = true;  // Whether we're in insert mode or overwrite mode
 
 // External variables from print.c
 extern size_t col;
 extern size_t row;
 
-// Command history
-static char command_history[CLI_HISTORY_SIZE][CLI_MAX_CMD_LENGTH];
-static int history_count = 0;
-static int history_index = -1;
-
-// Current command buffer
-static char command_buffer[CLI_MAX_CMD_LENGTH];
-static int buffer_position = 0;
-
 // Forward declarations
 static int cli_strcmp(const char* str1, const char* str2);
 static int cli_strncmp(const char* str1, const char* str2, int n);
 static void cli_strncpy(char* dest, const char* src, int n);
-static int cli_strlen(const char* str);
-static void cli_handle_backspace();
-static void cli_handle_up_arrow();
-static void cli_handle_down_arrow();
 
 void cli_init() {
     // Clear command buffer
@@ -194,17 +181,7 @@ static void handle_backspace() {
     }
 }
 
-// Handle delete key
-static void handle_delete() {
-    if (cli.cursor_pos < cli.length) {
-        for (int i = cli.cursor_pos; i < cli.length - 1; i++) {
-            cli.buffer[i] = cli.buffer[i + 1];
-        }
-        cli.length--;
-        cli.buffer[cli.length] = 0;
-        redraw_line();
-    }
-}
+
 
 void cli_run() {
     redraw_line();  // Initial prompt
@@ -255,6 +232,11 @@ void cli_run() {
         }
         else if (c == '\b') {  // Backspace
             handle_backspace();
+        }
+        else if (c == KEY_PGUP) {
+            print_scroll_up(NUM_ROWS / 2);  // Scroll to see older content
+        } else if (c == KEY_PGDN) {
+            print_scroll_down(NUM_ROWS / 2);
         }
         else if (c >= ' ' && c <= '~') {  // Printable characters
             insert_char(c);
@@ -591,10 +573,8 @@ int cli_execute_command(const char* command) {
         );
 
         // Extract CPU info
-        uint8_t cpu_stepping = cpu_signature & 0xF;
         uint8_t cpu_model = (cpu_signature >> 4) & 0xF;
         uint8_t cpu_family = (cpu_signature >> 8) & 0xF;
-        uint8_t cpu_type = (cpu_signature >> 12) & 0x3;
         uint8_t cpu_ext_model = (cpu_signature >> 16) & 0xF;
         uint8_t cpu_ext_family = (cpu_signature >> 20) & 0xFF;
 
@@ -889,30 +869,7 @@ int cli_execute_command(const char* command) {
 
     // Dance command
     if (cli_strcmp(command, "dance") == 0) {
-        const char* dance_frames[] = {
-            "(>^-^)>",
-            "<(^-^<)",
-            "^(^-^)^",
-            "v(^-^)v",
-            "<(^-^)>",
-            "\\(^-^)/",
-            "(>^-^)>",
-            "<(^-^<)"
-        };
-
-        print_str("Press any key to stop the dance...\n");
-        sleep(1000);
-
-        for (int i = 0; !keyboard_is_key_available(); i++) {
-            print_char('\r');
-            print_str(dance_frames[i % 8]);
-            sleep(200);
-        }
-
-        // Consume the key that was pressed
-        keyboard_read();
-
-        print_str("\nDance party over!\n");
+        CMD_dance();
         return 0;
     }
 
@@ -931,6 +888,46 @@ int cli_execute_command(const char* command) {
     // Random command
     if (cli_strncmp(command, "random", 6) == 0 && (command[6] == '\0' || command[6] == ' ')) {
         return CMD_random(command);
+    }
+
+    // Asm Command
+    if (cli_strncmp(command, "asm ", 4) == 0) {
+        const char* bytes_str = command + 4;
+            uint8_t* code = (uint8_t*)0x70000; // Fixed executable memory region
+            int code_len = 0;
+
+            // Parse space-separated hex bytes (like "90 F4 C3" for nop; hlt; ret)
+            while (*bytes_str) {
+                // Skip spaces
+                while (*bytes_str == ' ') bytes_str++;
+                if (!*bytes_str) break;
+
+                // Parse two hex digits
+                uint8_t byte = 0;
+                for (int i = 0; i < 2; i++) {
+                    char c = *bytes_str++;
+                    byte <<= 4;
+                    if (c >= '0' && c <= '9') byte |= c - '0';
+                    else if (c >= 'a' && c <= 'f') byte |= c - 'a' + 10;
+                    else if (c >= 'A' && c <= 'F') byte |= c - 'A' + 10;
+                    else {
+                        print_str("Invalid hex digit\n");
+                        return -1;
+                    }
+                }
+
+                code[code_len++] = byte;
+            }
+
+            // Add ret instruction if not already present
+            if (code[code_len-1] != 0xC3) {
+                code[code_len++] = 0xC3;
+            }
+
+            print_str("Executing code...\n");
+            ((void(*)())code)();
+            print_str("Done!\n");
+            return 0;
     }
 
     // Poweroff command
@@ -961,83 +958,6 @@ int cli_execute_command(const char* command) {
         }
 
     return -1;
-}
-
-static void cli_prompt() {
-    // Make sure we're at the beginning of a line
-    if (print_get_column() > 0) {
-        print_char('\n');
-    }
-
-    print_set_color(PRINT_COLOR_LIGHT_GRAY, PRINT_COLOR_BLACK);
-    print_str("femboy");
-
-    print_set_color(PRINT_COLOR_WHITE, PRINT_COLOR_BLACK);
-    print_str("OS");
-
-    print_set_color(PRINT_COLOR_LIGHT_GREEN, PRINT_COLOR_BLACK);
-    print_str("> ");
-
-    print_set_color(PRINT_COLOR_WHITE, PRINT_COLOR_BLACK);
-}
-
-static void cli_clear_line() {
-    // Save current cursor position
-    size_t current_col, current_row;
-    print_get_cursor(&current_col, &current_row);
-
-    // Move to beginning of line
-    print_set_cursor(0, current_row);
-
-    // Clear the entire line
-    clear_row(current_row);
-
-    // Reset cursor to beginning of line
-    print_set_cursor(0, current_row);
-}
-
-// Update the display functions to handle cursor positioning
-static void cli_display_command() {
-    cli_clear_line();
-    cli_prompt();
-    print_str(command_buffer);
-    cursor_position = buffer_position;  // Reset cursor to end
-}
-
-static void cli_handle_backspace() {
-    if (buffer_position > 0) {
-        buffer_position--;
-        command_buffer[buffer_position] = 0;
-
-        // Move cursor back, print space, move back again
-        print_char('\b');
-        print_char(' ');
-        print_char('\b');
-    }
-}
-
-static void cli_handle_up_arrow() {
-    if (history_count > 0 && history_index < history_count - 1) {
-        history_index++;
-        cli_strncpy(command_buffer, command_history[history_index], CLI_MAX_CMD_LENGTH);
-        buffer_position = cli_strlen(command_buffer);
-        cli_display_command();
-    }
-}
-
-static void cli_handle_down_arrow() {
-    if (history_index > 0) {
-        history_index--;
-        cli_strncpy(command_buffer, command_history[history_index], CLI_MAX_CMD_LENGTH);
-        buffer_position = cli_strlen(command_buffer);
-        cli_display_command();
-    }
-    else if (history_index == 0) {
-        history_index = -1;
-        buffer_position = 0;
-        command_buffer[0] = 0;
-        cli_display_command();
-    }
 }
 
 static int cli_strcmp(const char* str1, const char* str2) {
@@ -1071,97 +991,7 @@ static void cli_strncpy(char* dest, const char* src, int n) {
     }
 }
 
-static int cli_strlen(const char* str) {
-    int len = 0;
-    while (*str) {
-        len++;
-        str++;
-    }
-    return len;
-}
-
-// Add this helper function to redraw the command line from the cursor to the end
-static void cli_redraw_from_cursor() {
-    // Save current cursor position
-    int saved_cursor = cursor_position;
-
-    // Draw from current position to end
-    for (int i = cursor_position; i < buffer_position; i++) {
-        print_char(command_buffer[i]);
-    }
-
-    // If we removed a character, print a space to clear the last character
-    if (saved_cursor < buffer_position) {
-        print_char(' ');
-        print_char('\b');  // Move back after clearing
-    }
-
-    // Move cursor back to the saved position
-    for (int i = buffer_position; i > saved_cursor; i--) {
-        print_char('\b');
-    }
-}
-
-
-static char handle_escape_sequence() {
-    char second = keyboard_read();
-    if (second == '[') {
-        char third = keyboard_read();
-        switch (third) {
-            case 'A': return KEY_ARROW_UP;
-            case 'B': return KEY_ARROW_DOWN;
-            case 'C': return KEY_ARROW_RIGHT;
-            case 'D': return KEY_ARROW_LEFT;
-            case '1': {
-                char fourth = keyboard_read();
-                if (fourth == '~') return KEY_HOME;
-                break;
-            }
-            case '4': {
-                char fourth = keyboard_read();
-                if (fourth == '~') return KEY_END;
-                break;
-            }
-            case '3': {
-                char fourth = keyboard_read();
-                if (fourth == '~') return KEY_DELETE;
-                break;
-            }
-            case '2': {
-                char fourth = keyboard_read();
-                if (fourth == '~') return KEY_INSERT;
-                break;
-            }
-            case '5': {
-                char fourth = keyboard_read();
-                if (fourth == '~') return KEY_PGUP;
-                break;
-            }
-            case '6': {
-                char fourth = keyboard_read();
-                if (fourth == '~') return KEY_PGDN;
-                break;
-            }
-        }
-    }
-    return 0; // Unknown escape sequence
-}
-
-static void clear_current_line() {
-    // Save current cursor position
-    size_t current_col, current_row;
-    print_get_cursor(&current_col, &current_row);
-    print_set_cursor(0, current_row);
-
-    // Clear the entire line
-    for (size_t i = 0; i < 80; i++) {
-        print_char(' ');
-    }
-    print_set_cursor(0, current_row);
-}
-
-
-static void cli_reset_after_command() {
+void cli_reset_after_command() {
     // Reset buffer
     cli.length = 0;
     cli.cursor_pos = 0;

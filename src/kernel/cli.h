@@ -11,7 +11,4 @@ void cli_run(void);
 // Execute a command and return the result
 int cli_execute_command(const char* command);
 
-static void cli_redraw_from_cursor();
-static void cli_handle_backspace();
-static char handle_escape_sequence();
-static void cli_reset_after_command();
+void cli_reset_after_command();

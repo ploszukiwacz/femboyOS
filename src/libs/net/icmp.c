@@ -1,6 +1,7 @@
 #include "icmp.h"
 #include "ip.h"
 #include "../string.h"
+#include "../print.h"
 
 static uint16_t icmp_checksum(const void* data, size_t length) {
     const uint16_t* ptr = (const uint16_t*)data;

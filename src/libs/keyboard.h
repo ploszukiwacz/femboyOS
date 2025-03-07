@@ -15,6 +15,8 @@
 #define KEY_ARROW_LEFT  0x12  // Special code to represent Left arrow
 #define KEY_ARROW_RIGHT 0x13  // Special code to represent Right arrow
 
+#define SCROLL_BUFFER_ROWS 1000
+
 // Initialize the keyboard
 void keyboard_init();
 

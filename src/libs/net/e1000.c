@@ -176,7 +176,7 @@ bool e1000_init(void) {
                 e1000_write_reg(REG_CTRL, ctrl | (1 << 26));  // Set reset bit
 
                 // Wait for reset to complete
-                for (int i = 0; i < timeout && (e1000_read_reg(REG_CTRL) & (1 << 26)); i++) {
+                for (uint32_t i = 0; i < timeout && (e1000_read_reg(REG_CTRL) & (1 << 26)); i++) {
                     sleep(1);
 
                     // Break early if we're getting invalid reads

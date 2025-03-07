@@ -1,5 +1,7 @@
 #include "print.h"
 #include "port.h"
+#include "keyboard.h"
+#include "string.h"
 
 static const size_t NUM_COLS = 80;
 static const size_t NUM_ROWS = 25;
@@ -23,6 +25,11 @@ uint8_t color = PRINT_COLOR_WHITE | (PRINT_COLOR_BLACK << 4);
 size_t print_get_column(void) {
     return col;
 }
+static size_t scroll_offset = 0;
+static struct Char scroll_buffer[1000][80];
+static bool autoscroll = true;
+static size_t buffer_used_rows = 0;  // Track how many rows we've actually used
+static size_t total_rows = 0;
 
 size_t print_get_row(void) {
     return row;
@@ -32,10 +39,10 @@ size_t print_get_row(void) {
 static void update_cursor() {
     uint16_t pos = row * NUM_COLS + col;
 
-    port_byte_out(VGA_CTRL_REGISTER, VGA_CURSOR_HIGH);
-    port_byte_out(VGA_DATA_REGISTER, (pos >> 8) & 0xFF);
-    port_byte_out(VGA_CTRL_REGISTER, VGA_CURSOR_LOW);
-    port_byte_out(VGA_DATA_REGISTER, pos & 0xFF);
+    port_byte_out(0x3D4, 0x0F);
+    port_byte_out(0x3D5, (uint8_t)(pos & 0xFF));
+    port_byte_out(0x3D4, 0x0E);
+    port_byte_out(0x3D5, (uint8_t)((pos >> 8) & 0xFF));
 }
 
 // Function to enable the cursor
@@ -46,20 +53,49 @@ static void enable_cursor() {
     port_byte_out(VGA_DATA_REGISTER, (port_byte_in(VGA_DATA_REGISTER) & 0xE0) | 0x0F);
 }
 
-// Function to scroll the screen
+static void copy_line_to_buffer(size_t screen_row, size_t buffer_row) {
+    for (size_t c = 0; c < NUM_COLS; c++) {
+        scroll_buffer[buffer_row][c] = buffer[c + NUM_COLS * screen_row];
+    }
+}
+
+static void copy_line_from_buffer(size_t buffer_row, size_t screen_row) {
+    for (size_t c = 0; c < NUM_COLS; c++) {
+        buffer[c + NUM_COLS * screen_row] = scroll_buffer[buffer_row][c];
+    }
+}
+
+// Modified scroll() function to properly maintain buffer
 static void scroll() {
-    // Copy each line up
+    // First, save current screen to buffer
+    for (size_t r = 0; r < NUM_ROWS; r++) {
+        for (size_t c = 0; c < NUM_COLS; c++) {
+            scroll_buffer[buffer_used_rows + r][c] = buffer[r * NUM_COLS + c];
+        }
+    }
+
+    // Update buffer usage
+    buffer_used_rows += NUM_ROWS;
+    if (buffer_used_rows >= SCROLL_BUFFER_ROWS) {
+        // If buffer is full, shift everything up
+        for (size_t r = 0; r < SCROLL_BUFFER_ROWS - NUM_ROWS; r++) {
+            for (size_t c = 0; c < NUM_COLS; c++) {
+                scroll_buffer[r][c] = scroll_buffer[r + NUM_ROWS][c];
+            }
+        }
+        buffer_used_rows = SCROLL_BUFFER_ROWS - NUM_ROWS;
+    }
+
+    // Normal screen scroll
     for (size_t r = 1; r < NUM_ROWS; r++) {
         for (size_t c = 0; c < NUM_COLS; c++) {
             buffer[c + NUM_COLS * (r-1)] = buffer[c + NUM_COLS * r];
         }
     }
-
-    // Clear the last row
     clear_row(NUM_ROWS - 1);
 }
 
-void clear_row(size_t row) {
+static void clear_row(size_t row) {
     struct Char empty = (struct Char) {
         .character = ' ',
         .color = color,
@@ -70,20 +106,110 @@ void clear_row(size_t row) {
     }
 }
 
-void print_clear() {
-    uint8_t saved_color = color;
+static void clear_buffer_row(size_t row) {
+    struct Char empty = (struct Char) {
+        .character = ' ',
+        .color = color,
+    };
+    for (size_t c = 0; c < NUM_COLS; c++) {
+        scroll_buffer[row][c] = empty;
+    }
+}
 
+static void scroll_buffer_up(void) {
+    // Move everything up one line
+    memmove(&scroll_buffer[0], &scroll_buffer[1],
+            sizeof(struct Char) * NUM_COLS * (SCROLL_BUFFER_ROWS - 1));
+    clear_buffer_row(SCROLL_BUFFER_ROWS - 1);
+}
+
+void print_scroll_up(size_t lines) {
+    if (buffer_used_rows > NUM_ROWS) {
+        if (scroll_offset + lines > buffer_used_rows - NUM_ROWS) {
+            scroll_offset = buffer_used_rows - NUM_ROWS;
+        } else {
+            scroll_offset += lines;
+        }
+
+        // Update screen from buffer
+        for (size_t r = 0; r < NUM_ROWS; r++) {
+            for (size_t c = 0; c < NUM_COLS; c++) {
+                buffer[r * NUM_COLS + c] = scroll_buffer[scroll_offset + r][c];
+            }
+        }
+        update_cursor();
+    }
+}
+
+void print_scroll_down(size_t lines) {
+    if (scroll_offset > 0) {
+        if (lines > scroll_offset) {
+            scroll_offset = 0;
+        } else {
+            scroll_offset -= lines;
+        }
+
+        // Update screen from buffer
+        for (size_t r = 0; r < NUM_ROWS; r++) {
+            for (size_t c = 0; c < NUM_COLS; c++) {
+                buffer[r * NUM_COLS + c] = scroll_buffer[scroll_offset + r][c];
+            }
+        }
+        update_cursor();
+    }
+}
+
+static void update_screen() {
+    for (size_t r = 0; r < NUM_ROWS; r++) {
+        size_t buffer_row = r + scroll_offset;
+        if (buffer_row < SCROLL_BUFFER_ROWS) {
+            for (size_t c = 0; c < NUM_COLS; c++) {
+                buffer[c + NUM_COLS * r] = scroll_buffer[buffer_row][c];
+            }
+        }
+    }
+    update_cursor();
+}
+void print_clear() {
+    struct Char empty = (struct Char) {
+        .character = ' ',
+        .color = color,
+    };
+
+    // Clear scroll buffer
+    for (size_t r = 0; r < SCROLL_BUFFER_ROWS; r++) {
+        for (size_t c = 0; c < NUM_COLS; c++) {
+            scroll_buffer[r][c] = empty;
+        }
+    }
+
+    // Clear screen
     for (size_t r = 0; r < NUM_ROWS; r++) {
         clear_row(r);
     }
 
+    scroll_offset = 0;
+    buffer_used_rows = 0;
     col = 0;
     row = 0;
-    color = saved_color;
     update_cursor();
 }
 
+
 void print_init() {
+    // Initialize scroll buffer
+    struct Char empty = (struct Char) {
+        .character = ' ',
+        .color = PRINT_COLOR_WHITE | (PRINT_COLOR_BLACK << 4)
+    };
+
+    for (size_t r = 0; r < SCROLL_BUFFER_ROWS; r++) {
+        for (size_t c = 0; c < NUM_COLS; c++) {
+            scroll_buffer[r][c] = empty;
+        }
+    }
+
+    // Clear screen
     print_clear();
     enable_cursor();
     update_cursor();
@@ -104,54 +230,42 @@ void print_newline() {
 void print_char(char character) {
     switch (character) {
         case '\n':
-            print_newline();
-            return;
-
-        case '\r':
             col = 0;
-            update_cursor();
-            return;
-
-        case '\t':
-            // Tab = 4 spaces
-            for (int i = 0; i < 4; i++) {
-                print_char(' ');
+            if (row < NUM_ROWS - 1) {
+                row++;
+            } else {
+                scroll();
             }
-            return;
+            break;
 
-        case '\b':
-            if (col > 0) {
-                col--;
-                buffer[col + NUM_COLS * row] = (struct Char) {
-                    .character = ' ',
-                    .color = color,
-                };
-                update_cursor();
-            } else if (row > 0) {
-                // Move to end of previous line
-                row--;
-                col = NUM_COLS - 1;
-                update_cursor();
+        default:
+            if (col >= NUM_COLS) {
+                col = 0;
+                if (row < NUM_ROWS - 1) {
+                    row++;
+                } else {
+                    scroll();
+                }
             }
-            return;
+
+            // Write to screen
+            buffer[col + NUM_COLS * row] = (struct Char) {
+                .character = (uint8_t)character,
+                .color = color,
+            };
+
+            // Write to scroll buffer
+            size_t buffer_row = buffer_used_rows + row;
+            if (buffer_row < SCROLL_BUFFER_ROWS) {
+                scroll_buffer[buffer_row][col] = buffer[col + NUM_COLS * row];
+            }
+
+            col++;
     }
-
-    if (col >= NUM_COLS) {
-        print_newline();
-    }
-
-    buffer[col + NUM_COLS * row] = (struct Char) {
-        .character = (uint8_t) character,
-        .color = color,
-    };
-
-    col++;
     update_cursor();
 }
 
 void print_str(const char* str) {
-    if (!str) return;
-
     for (size_t i = 0; str[i] != '\0'; i++) {
         print_char(str[i]);
     }
@@ -178,23 +292,21 @@ void print_set_cursor(size_t new_col, size_t new_row) {
 }
 
 void print_refresh() {
-    size_t old_col = col;
-    size_t old_row = row;
-    uint8_t old_color = color;
-
-    // Force memory refresh by reading and writing back
-    volatile struct Char* video_mem = (struct Char*) 0xb8000;
+    // Copy visible portion of scroll buffer to screen
     for (size_t r = 0; r < NUM_ROWS; r++) {
+        size_t buffer_row = r + scroll_offset;
         for (size_t c = 0; c < NUM_COLS; c++) {
-            struct Char ch = video_mem[c + NUM_COLS * r];
-            video_mem[c + NUM_COLS * r] = ch;
+            if (buffer_row < SCROLL_BUFFER_ROWS) {
+                buffer[r * NUM_COLS + c] = scroll_buffer[buffer_row][c];
+            }
         }
     }
 
-    col = old_col;
-    row = old_row;
-    color = old_color;
-    update_cursor();
+    // Update cursor position
+    if (row >= scroll_offset && row < scroll_offset + NUM_ROWS) {
+        size_t screen_row = row - scroll_offset;
+        print_set_cursor(col, screen_row);
+    }
 }
 
 void print_number(uint64_t num) {
@@ -392,4 +504,24 @@ void print_save_state(void) {
 void print_restore_state(void) {
     print_set_cursor(print_state.saved_col, print_state.saved_row);
     print_set_color(print_state.saved_color, PRINT_COLOR_BLACK);
+}
+
+void print_set_scroll_offset(size_t offset) {
+    if (offset > SCROLL_BUFFER_ROWS - NUM_ROWS) {
+        offset = SCROLL_BUFFER_ROWS - NUM_ROWS;
+    }
+    scroll_offset = offset;
+    print_refresh();
+}
+
+size_t print_get_scroll_offset(void) {
+    return scroll_offset;
+}
+
+// Only refresh the parts that changed
+static void refresh_line(size_t row) {
+    size_t buffer_row = row + scroll_offset;
+    for (size_t c = 0; c < NUM_COLS; c++) {
+        buffer[c + NUM_COLS * row] = scroll_buffer[buffer_row][c];
+    }
 }

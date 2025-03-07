@@ -163,6 +163,79 @@ static const man_page_t man_pages[] = {
         "Shows the current version of femboyOS and build information.",
         "version"
     },
+    {
+        "asm",
+        "Execute raw x86_64 machine code",
+        "asm [hex bytes]",
+        "Executes machine code bytes provided in hexadecimal format.\n"
+        "Each byte should be provided as two hex digits, separated by spaces.\n"
+        "A return (ret) instruction 0xC3 is automatically appended if not present.\n"
+        "\n"
+        "WARNING: This command executes code directly with no safety checks.\n"
+        "Invalid instructions may crash the system.",
+        "asm 90           # Execute NOP\n"
+        "asm 90 F4        # NOP followed by HLT\n"
+        "asm 48 C7 C0 42 00 00 00    # mov rax, 42"
+    },
+
+    {
+        "opcodes",
+        "Common x86_64 machine code bytes reference",
+        "opcodes",
+        "Basic Instructions:\n"
+        "  90       NOP          No operation\n"
+        "  F4       HLT          Halt processor\n"
+        "  C3       RET          Return from procedure\n"
+        "  CC       INT3         Breakpoint\n"
+        "\n"
+        "System Instructions:\n"
+        "  FA       CLI          Clear interrupt flag (disable interrupts)\n"
+        "  FB       STI          Set interrupt flag (enable interrupts)\n"
+        "  0F 05    SYSCALL      System call\n"
+        "  CF       IRET         Interrupt return\n"
+        "\n"
+        "Common MOV Instructions:\n"
+        "  48 C7 C0 ?? ?? ?? ??    MOV RAX, imm32    Move immediate to RAX\n"
+        "  48 89 C3                MOV RBX, RAX     Move RAX to RBX\n"
+        "  48 89 E5                MOV RBP, RSP     Setup stack frame\n"
+        "\n"
+        "Flag Instructions:\n"
+        "  F8       CLC          Clear carry flag\n"
+        "  F9       STC          Set carry flag\n"
+        "  FC       CLD          Clear direction flag\n"
+        "  FD       STD          Set direction flag\n"
+        "\n"
+        "String Instructions:\n"
+        "  F3       REP          Repeat string operation\n"
+        "  F2       REPNE        Repeat string operation while not equal\n"
+        "  A4       MOVSB        Move byte string\n"
+        "  A5       MOVSD        Move double word string\n"
+        "\n"
+        "Math Instructions:\n"
+        "  48 01 D8    ADD RAX, RBX     Add RBX to RAX\n"
+        "  48 29 D8    SUB RAX, RBX     Subtract RBX from RAX\n"
+        "  48 F7 E3    MUL RBX          Unsigned multiply RAX by RBX\n"
+        "  48 F7 FB    IDIV RBX         Signed divide RAX by RBX\n"
+        "\n"
+        "Jump Instructions:\n"
+        "  EB ??    JMP rel8     Short jump (1 byte offset)\n"
+        "  E9 ?? ?? ?? ??    JMP rel32    Near jump (4 byte offset)\n"
+        "  74 ??    JE/JZ rel8   Jump if equal/zero\n"
+        "  75 ??    JNE/JNZ rel8 Jump if not equal/not zero\n"
+        "\n"
+        "Stack Instructions:\n"
+        "  50-57    PUSH reg     Push register (rax-rdi)\n"
+        "  58-5F    POP reg      Pop register (rax-rdi)\n"
+        "\n"
+        "Note: ?? represents immediate values or offsets that need to be filled in.\n"
+        "WARNING: Incorrect machine code can crash the system.",
+        "# Push and pop RAX\n"
+        "asm 50 58\n\n"
+        "# Move 42 to RAX and add RBX\n"
+        "asm 48 C7 C0 2A 00 00 00 48 01 D8\n\n"
+        "# Simple loop (decrement RAX until zero)\n"
+        "asm 48 C7 C0 05 00 00 00 48 FF C8 75 FB"
+    }
 };
 
 // Export the number of man pages
