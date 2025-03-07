@@ -1,6 +1,6 @@
-#include "../../intf/timer.h"
-#include "../../intf/port.h"
-#include "../../intf/interrupt.h"
+#include "timer.h"
+#include "port.h"
+#include "interrupt.h"
 
 // PIT (Programmable Interval Timer) operates at 1.19 MHz
 #define PIT_FREQUENCY 1193182
@@ -34,16 +34,11 @@ void timer_init() {
 }
 
 void sleep(uint32_t ms) {
-    uint64_t start_tick = tick_count;
     uint64_t target_tick = tick_count + ms;
-
     while (tick_count < target_tick) {
-        // Read from an I/O port in the sleep loop as well
-        if ((tick_count & 0xF) == 0) {  // Every 16 ticks
-            port_byte_in(0x64);  // Keyboard status port
+        if ((tick_count & 0xF) == 0) {
+            port_byte_in(0x64);
         }
-
-        // Halt the CPU until next interrupt
         __asm__ volatile("hlt");
     }
 }
