@@ -7,6 +7,7 @@
 // #include "../libs/net/icmp.h"
 // #include "../libs/types.h"
 #include "cli.h"
+#include "panic.h"
 
 void kernel_main() {
     print_clear();
@@ -15,10 +16,18 @@ void kernel_main() {
     print_str("femboyOS loading...\n");
 
     // Initialize subsystems
+    print_str("Initializing interrupts...\n");
     interrupt_init();
+
+    print_str("Initializing timer...\n");
     timer_init();
+
+    print_str("Initializing keyboard...\n");
     keyboard_init();
+
+    print_str("Enabling interrupts...\n");
     enable_interrupts();
+
 
     // Network support comming in 2030 - ploszukiwacz
     // print_str("Checking for network hardware...");
@@ -43,8 +52,10 @@ void kernel_main() {
     cli_init();
     cli_run();
 
+    PANIC("Failed to init the cli.");
+
     // This code should never be reached
-    while(1) {
-        __asm__ volatile("hlt");
-    }
+    // while(1) {
+    //     __asm__ volatile("hlt");
+    // }
 }

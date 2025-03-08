@@ -3,6 +3,7 @@
 #include "../libs/timer.h"
 #include "../libs/interrupt.h"
 #include "restart.h"
+#include "../kernel/panic.h"
 
 void CMD_restart() {
     print_str("Rebooting femboyOS...\n");
@@ -15,8 +16,8 @@ void CMD_restart() {
     port_byte_out(0x64, 0xFE);
 
     // Method 2: Triple fault (if keyboard controller method fails)
-    print_str("Keyboard controller reboot failed. Trying triple fault...\n");
-    sleep(500);
+    // print_str("Keyboard controller reboot failed. Trying triple fault...\n");
+    // sleep(500);
 
     // Disable interrupts
     disable_interrupts();
@@ -28,7 +29,8 @@ void CMD_restart() {
     // Trigger interrupt
     __asm__ volatile("int $0x03");
 
+    PANIC("Failed to rebbot");
     // If we get here, both reboot methods failed
-    print_str("Failed to reboot. System halted.\n");
-    __asm__ volatile("cli; hlt");
+    // print_str("Failed to reboot. System halted.\n");
+    // __asm__ volatile("cli; hlt");
 }

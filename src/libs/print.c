@@ -36,7 +36,7 @@ size_t print_get_row(void) {
 }
 
 // Function to update the hardware cursor
-static void update_cursor() {
+void update_cursor() {
     uint16_t pos = row * NUM_COLS + col;
 
     port_byte_out(0x3D4, 0x0F);
@@ -46,7 +46,7 @@ static void update_cursor() {
 }
 
 // Function to enable the cursor
-static void enable_cursor() {
+void enable_cursor() {
     port_byte_out(VGA_CTRL_REGISTER, 0x0A);
     port_byte_out(VGA_DATA_REGISTER, (port_byte_in(VGA_DATA_REGISTER) & 0xC0) | 0x0E);
     port_byte_out(VGA_CTRL_REGISTER, 0x0B);

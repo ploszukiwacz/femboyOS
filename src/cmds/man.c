@@ -177,7 +177,13 @@ static const man_page_t man_pages[] = {
         "asm 90 F4        # NOP followed by HLT\n"
         "asm 48 C7 C0 42 00 00 00    # mov rax, 42"
     },
-
+    {
+        "panic",
+        "Trigger a kernel panic",
+        "panic",
+        "Forces a kernel panic by calling the PANIC func.\n",
+        "panic"
+    },
     {
         "opcodes",
         "Common x86_64 machine code bytes reference",

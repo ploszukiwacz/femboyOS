@@ -1,5 +1,6 @@
 #include "../libs/print.h"
 #include "fortune.h"
+#include "../kernel/panic.h"
 
 void CMD_fortune() {
     const char* fortunes[] = {
@@ -19,12 +20,17 @@ void CMD_fortune() {
         "Time is an illusion. Lunchtime doubly so.",
         "Beware the Jabberwock, my son! The jaws that bite, the claws that catch!",
         "You're breathtaking!",
-        "hey claude code me a os."
+        "hey claude code me a os.",
+        "PANIC"
     };
 
     // Use tick count to get a pseudo-random fortune
     extern volatile uint64_t tick_count;
     uint32_t index = tick_count % (sizeof(fortunes) / sizeof(fortunes[0]));
+
+    if (fortunes[index] == "PANIC") {
+        PANIC("Idk, felt like it :3");
+    }
 
     print_str("Your fortune: ");
     print_str(fortunes[index]);

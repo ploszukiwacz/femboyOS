@@ -2,6 +2,7 @@
 #include "../libs/print.h"
 #include "../libs/keyboard.h"
 #include "../libs/timer.h"
+#include "panic.h"
 
 // Include commands
 #include "../cmds/poweroff.h"
@@ -11,6 +12,7 @@
 #include "../cmds/man.h"
 #include "../cmds/random.h"
 #include "../cmds/dance.h"
+#include "../cmds/hardtest.h"
 
 #define CLI_MAX_CMD_LENGTH 256
 #define CLI_HISTORY_SIZE 50
@@ -33,6 +35,18 @@ typedef struct {
     CommandHistory history;
 } CommandLine;
 
+extern struct Char {
+    uint8_t character;
+    uint8_t color;
+} *const buffer;
+
+static int cli_strcmp(const char* str1, const char* str2);
+static int cli_strncmp(const char* str1, const char* str2, int n);
+static void cli_strncpy(char* dest, const char* src, int n);
+static void ensure_new_line(void);
+static void redraw_line(void);
+int cli_execute_command(const char* command);
+
 static CommandLine cli;
 
 #define NUM_ROWS 25
@@ -50,22 +64,35 @@ static int cli_strncmp(const char* str1, const char* str2, int n);
 static void cli_strncpy(char* dest, const char* src, int n);
 
 void cli_init() {
+    // Disable interrupts during initialization
+    // asm volatile("cli");
+
     // Clear command buffer
     for (int i = 0; i < CLI_MAX_CMD_LENGTH; i++) {
         cli.buffer[i] = 0;
     }
 
+    // Initialize CLI state
     cli.length = 0;
     cli.cursor_pos = 0;
     cli.insert_mode = true;
     cli.history.count = 0;
     cli.history.current_index = -1;
+    cli.history.buffer_pos = 0;
+    cli.history.start = 0;
 
+    // Clear screen and set initial colors
     print_clear();
     print_set_color(PRINT_COLOR_LIGHT_CYAN, PRINT_COLOR_BLACK);
     print_str("femboyOS v0.1 ALPHA\n");
     print_set_color(PRINT_COLOR_LIGHT_GRAY, PRINT_COLOR_BLACK);
     print_str("Type 'help' for available commands.\n\n");
+
+    // Re-enable interrupts
+    // asm volatile("sti");
+
+    // Make sure cursor is visible
+    update_cursor();
 }
 // Add command to history
 static void add_to_history(const char* cmd) {
@@ -98,7 +125,7 @@ static void add_to_history(const char* cmd) {
     }
 }
 
-static void redraw_line() {
+static void redraw_line(void) {
     size_t current_col, current_row;
     print_get_cursor(&current_col, &current_row);
 
@@ -124,9 +151,8 @@ static void redraw_line() {
     print_str(cli.buffer);
 
     // Position cursor
-    print_set_cursor(cli.cursor_pos + 9, current_row);  // 9 is prompt length
+    print_set_cursor(cli.cursor_pos + 9, current_row);
 }
-
 // Load command from history
 static void load_history_command(int index) {
     if (index < 0 || index >= cli.history.count) return;
@@ -187,8 +213,11 @@ void cli_run() {
     redraw_line();  // Initial prompt
 
     while (1) {
-        char c = keyboard_read();
+        // Wait for key input with interrupts enabled
+        char c = keyboard_read();  // This should block until a key is pressed
+        // insert_char(c);
 
+        // Process the key
         if (c == KEY_ARROW_UP) {
             if (cli.history.current_index < cli.history.count - 1) {
                 cli.history.current_index++;
@@ -219,28 +248,32 @@ void cli_run() {
                 redraw_line();
             }
         }
-        else if (c == '\n') {  // Enter key
-            print_char('\n');  // Move to next line only when Enter is pressed
-
+        else if (c == '\n') {
+            print_char('\n');
             if (cli.length > 0) {
+                // Save command to history
                 add_to_history(cli.buffer);
+
+                // Execute command
                 cli_execute_command(cli.buffer);
-                cli_reset_after_command();
-            } else {
-                redraw_line();
+
+                // Reset command line
+                cli.length = 0;
+                cli.cursor_pos = 0;
+                cli.buffer[0] = 0;
+                cli.history.current_index = -1;
             }
+            redraw_line();
         }
-        else if (c == '\b') {  // Backspace
+        else if (c == '\b') {
             handle_backspace();
-        }
-        else if (c == KEY_PGUP) {
-            print_scroll_up(NUM_ROWS / 2);  // Scroll to see older content
-        } else if (c == KEY_PGDN) {
-            print_scroll_down(NUM_ROWS / 2);
         }
         else if (c >= ' ' && c <= '~') {  // Printable characters
             insert_char(c);
         }
+
+        // Update screen and cursor after every key press
+        update_cursor();
     }
 }
 
@@ -269,6 +302,7 @@ int cli_execute_command(const char* command) {
         print_str("  dance    - Little dancing character\n");
         print_str("  fortune  - Random fortune message\n");
         print_str("  random   - Give a random number from rang\n");
+        print_str("  panic    - Trigger a kernel panic\n");
         print_str("  poweroff - Poweroff the pc\n");
         print_str("  restart  - Restart the pc\n");
         return 0;
@@ -885,6 +919,16 @@ int cli_execute_command(const char* command) {
         return 0;
     }
 
+    if (cli_strcmp(command, "panic") == 0) {
+        PANIC("Manual panic trigger.");
+        return 0;
+    }
+
+    if (cli_strcmp(command, "hardtest") == 0) {
+        CMD_hardtest();
+        return 0;
+    }
+
     // Random command
     if (cli_strncmp(command, "random", 6) == 0 && (command[6] == '\0' || command[6] == ' ')) {
         return CMD_random(command);
@@ -960,7 +1004,7 @@ int cli_execute_command(const char* command) {
     return -1;
 }
 
-static int cli_strcmp(const char* str1, const char* str2) {
+int cli_strcmp(const char* str1, const char* str2) {
     while (*str1 && (*str1 == *str2)) {
         str1++;
         str2++;
@@ -968,7 +1012,7 @@ static int cli_strcmp(const char* str1, const char* str2) {
     return *(const unsigned char*)str1 - *(const unsigned char*)str2;
 }
 
-static int cli_strncmp(const char* str1, const char* str2, int n) {
+int cli_strncmp(const char* str1, const char* str2, int n) {
     while (n && *str1 && (*str1 == *str2)) {
         str1++;
         str2++;
@@ -980,7 +1024,7 @@ static int cli_strncmp(const char* str1, const char* str2, int n) {
     return *(const unsigned char*)str1 - *(const unsigned char*)str2;
 }
 
-static void cli_strncpy(char* dest, const char* src, int n) {
+void cli_strncpy(char* dest, const char* src, int n) {
     while (n > 0 && *src) {
         *dest++ = *src++;
         n--;
@@ -998,5 +1042,16 @@ void cli_reset_after_command() {
     cli.buffer[0] = 0;
     cli.history.current_index = -1;
 
+    // Ensure we're at a new line
+    ensure_new_line();
+
+    // Redraw the prompt
     redraw_line();
+}
+
+void ensure_new_line(void) {
+    size_t current_col = print_get_column();
+    if (current_col > 0) {
+        print_char('\n');
+    }
 }

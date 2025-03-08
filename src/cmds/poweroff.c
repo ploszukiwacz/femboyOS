@@ -2,6 +2,7 @@
 #include "../libs/print.h"
 #include "../libs/timer.h"
 #include "poweroff.h"
+#include "../kernel/panic.h"
 
 void CMD_poweroff() {
     print_str("Shutting down femboyOS...\n");
@@ -19,6 +20,7 @@ void CMD_poweroff() {
     port_word_out(0x8900, 0x530D);
 
     // If we get here, shutdown failed
-    print_str("Failed to power off. System halted.\n");
-    __asm__ volatile("cli; hlt");
+    // print_str("Failed to power off. System halted.\n");
+    // __asm__ volatile("cli; hlt");
+    PANIC("Failed to power off");
 }

@@ -59,14 +59,12 @@ void print_get_cursor(size_t* col, size_t* row);
 void print_set_cursor(size_t col, size_t row);
 
 // Screen control
-static void clear_row(size_t row);
 void print_refresh();
 void print_save_state(void);
 void print_restore_state(void);
+void update_cursor();
 
 void print_scroll_up(size_t lines);
 void print_scroll_down(size_t lines);
 void print_set_scroll_offset(size_t offset);
 size_t print_get_scroll_offset(void);
-static void refresh_line(size_t row);
-static size_t scroll_offset;
