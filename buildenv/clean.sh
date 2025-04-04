@@ -1,0 +1,1 @@
+docker run --rm -it -v .:/root/env femboyos:buildenv make clean

@@ -237,6 +237,10 @@ void print_char(char character) {
                 scroll();
             }
             break;
+        
+        case '\r':
+            col = 0;
+            break;
 
         default:
             if (col >= NUM_COLS) {

@@ -84,7 +84,11 @@ void cli_init() {
     // Clear screen and set initial colors
     print_clear();
     print_set_color(PRINT_COLOR_LIGHT_CYAN, PRINT_COLOR_BLACK);
-    print_str("femboyOS v0.1 ALPHA\n");
+    print_str("************************************\n");
+    print_str("*       FemboyOS v0.1 ALPHA        *\n");
+    print_str("*          AGPL Licensed           *\n");
+    print_str("* github.com/ploszukiwacz/femboyOS *\n");
+    print_str("************************************\n\n");
     print_set_color(PRINT_COLOR_LIGHT_GRAY, PRINT_COLOR_BLACK);
     print_str("Type 'help' for available commands.\n\n");
 

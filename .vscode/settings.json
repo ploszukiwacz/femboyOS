@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.embeddedhtml": "html",
+        "print.h": "c",
+        "keyboard.h": "c"
+    }
+}
