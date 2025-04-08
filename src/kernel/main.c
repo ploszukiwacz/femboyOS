@@ -15,18 +15,20 @@ void kernel_main() {
     print_set_color_rgb(0xFF55FF, 0x000000);
     print_str("femboyOS loading...\n");
 
-    // Initialize subsystems
-    print_str("Initializing interrupts...\n");
-    interrupt_init();
+    void (*init_functions[])() = {
+        interrupt_init,
+        timer_init,
+        keyboard_init,
+        enable_interrupts
+    };
 
-    print_str("Initializing timer...\n");
-    timer_init();
-
-    print_str("Initializing keyboard...\n");
-    keyboard_init();
-
-    print_str("Enabling interrupts...\n");
-    enable_interrupts();
+    // REMEMBER TO INCREASE THE NUMBER WHEN A NEW INIT FUNC IS ADDED
+    print_str("[");
+    for (int i = 0; i < 4; i++) {    
+        print_str("#");
+        init_functions[i]();
+    }
+    print_str("] Done\n");
 
 
     // Network support comming in 2030 - ploszukiwacz
