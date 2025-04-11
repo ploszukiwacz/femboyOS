@@ -3,6 +3,9 @@ name: Build femboyOS
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-x86_64:
     runs-on: ubuntu-latest
