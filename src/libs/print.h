@@ -68,3 +68,4 @@ void print_scroll_up(size_t lines);
 void print_scroll_down(size_t lines);
 void print_set_scroll_offset(size_t offset);
 size_t print_get_scroll_offset(void);
+static void clear_row(size_t row);
