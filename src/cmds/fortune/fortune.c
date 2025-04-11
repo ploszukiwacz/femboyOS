@@ -1,6 +1,7 @@
-#include "../libs/print.h"
+#include "../../libs/print.h"
 #include "fortune.h"
-#include "../kernel/panic.h"
+#include "../../kernel/panic.h"
+#include "../command_registry.h"
 
 void CMD_fortune() {
     const char* fortunes[] = {
@@ -35,4 +36,17 @@ void CMD_fortune() {
     print_str("Your fortune: ");
     print_str(fortunes[index]);
     print_str("\n");
+}
+
+command_t CMD_fortune_command = {
+    .name = "fortune",
+    .short_desc = "Display a random fortune.",
+    .usage = "fortune",
+    .long_desc = "Displays a random fortune from a predefined list.",
+    .examples = "fortune",
+    .execute = CMD_fortune
+};
+
+void CMD_init_fortune() {
+    register_command(&CMD_fortune_command);
 }

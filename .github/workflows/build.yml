@@ -4,25 +4,31 @@ on:
   workflow_dispatch:
 
 jobs:
-
-  build:
+  build-x86_64:
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ secrets.GHT }}
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
+
     - name: Build the Docker image
       run: docker build . --file buildenv/Dockerfile --tag femboyos:buildenv
 
     - name: Compile femboyOS
-      run: docker run -v .:/root/env femboyos:buildenv make build-x86_64
+      run: docker run --rm -v ${{ github.workspace }}:/root/env femboyos:buildenv make build-x86_64
 
     - name: Make release
       uses: softprops/action-gh-release@v2.1.0
       with:
-        tag_name: "v1.0 ALPHA"
-        name: "femboyOS v1.0 ALPHA"
+        tag_name: "build-${{ github.sha }}"
+        name: "femboyOS Build from Commit ${{ github.sha }}"
+        body: |
+          This release was built from commit `${{ github.sha }}`.
+          View the changes here: https://github.com/${{ github.repository }}/commit/${{ github.sha }}
         files: |
-          dist/kernel.bin
-          dist/kernel.iso
+          dist/x86_64/femboyOS.bin
+          dist/x86_64/femboyOS.iso
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

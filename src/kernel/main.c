@@ -2,6 +2,7 @@
 #include "../libs/timer.h"
 #include "../libs/interrupt.h"
 #include "../libs/keyboard.h"
+#include "../cmds/command_registry.h"
 // #include "../libs/net/ethernet.h"
 // #include "../libs/net/ip.h"
 // #include "../libs/net/icmp.h"
@@ -13,22 +14,23 @@ void kernel_main() {
     print_clear();
     // print_set_color(PRINT_COLOR_WHITE, PRINT_COLOR_BLACK);
     print_set_color_rgb(0xFF55FF, 0x000000);
-    print_str("femboyOS loading...\n");
+    print_str("femboyOS loading... (This may take a couple of seconds)\n");
 
     void (*init_functions[])() = {
         interrupt_init,
         timer_init,
         keyboard_init,
-        enable_interrupts
+        enable_interrupts,
+        initialize_command_registry
     };
 
-    // REMEMBER TO INCREASE THE NUMBER WHEN A NEW INIT FUNC IS ADDED
     print_str("[");
-    for (int i = 0; i < 4; i++) {    
+    for (int i = 0; i < (int)(sizeof(init_functions) / sizeof(init_functions[0])); i++) {
         print_str("#");
         init_functions[i]();
     }
     print_str("] Done\n");
+
 
 
     // Network support comming in 2030 - ploszukiwacz
@@ -45,10 +47,6 @@ void kernel_main() {
     //         icmp_init();
     //         print_str("initialized\n");
     //     }
-
-    print_str("System initialized!\n");
-
-    sleep(2000);
 
     // Initialize and run the command line interface
     cli_init();

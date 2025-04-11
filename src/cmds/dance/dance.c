@@ -1,6 +1,7 @@
-#include "../libs/keyboard.h"
-#include "../libs/print.h"
-#include "../libs/timer.h"
+#include "../../libs/keyboard.h"
+#include "../../libs/print.h"
+#include "../../libs/timer.h"
+#include "../command_registry.h"
 #include "dance.h"
 
 void CMD_dance() {
@@ -24,8 +25,20 @@ void CMD_dance() {
         sleep(200);
     }
 
-    // Consume the key that was pressed
     keyboard_read();
 
     print_str("\nDance party over!\n");
+}
+
+command_t CMD_dance_command = {
+    .name = "dance",
+    .short_desc = "Make the terminal dance.",
+    .usage = "dance",
+    .long_desc = "This command makes the terminal dance with ASCII art.",
+    .examples = "dance\n",
+    .execute = CMD_dance
+};
+
+void CMD_init_dance() {
+    register_command(&CMD_dance_command);
 }

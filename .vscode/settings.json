@@ -2,6 +2,11 @@
     "files.associations": {
         "*.embeddedhtml": "html",
         "print.h": "c",
-        "keyboard.h": "c"
+        "keyboard.h": "c",
+        "cli.h": "c",
+        "*.old": "c",
+        "string.h": "c",
+        "panic.h": "c",
+        "command_registry.h": "c"
     }
 }

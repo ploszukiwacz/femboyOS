@@ -32,3 +32,4 @@ char keyboard_read_nonblocking();
 
 // Wait for and return the next key press
 char keyboard_wait_for_key();
+char keyboard_get_char();

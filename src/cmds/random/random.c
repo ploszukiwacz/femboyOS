@@ -1,5 +1,6 @@
-#include "../libs/print.h"
-#include "../libs/random.h"
+#include "../../libs/print.h"
+#include "../../libs/random.h"
+#include "../command_registry.h"
 
 int CMD_random(const char* args) {
     uint8_t saved_color = color;
@@ -57,4 +58,19 @@ int CMD_random(const char* args) {
 
     print_set_color(saved_color, PRINT_COLOR_BLACK);
     return 0;
+}
+
+command_t CMD_random_command = {
+    .name = "random",
+    .short_desc = "Generate a random number",
+    .usage = "random [min max]",
+    .long_desc = "Generates a random number. If no arguments are provided, it generates a number between 0 and 100. "
+                 "If one argument is provided, it is treated as the maximum, with 0 as the minimum. "
+                 "If two arguments are provided, they are treated as the minimum and maximum range.",
+    .examples = "random\nrandom 50\nrandom 10 20",
+    .execute = CMD_random
+};
+
+void CMD_init_random() {
+    register_command(&CMD_random_command);
 }

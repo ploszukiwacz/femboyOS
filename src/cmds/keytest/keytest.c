@@ -1,6 +1,7 @@
-#include "../libs/keyboard.h"
-#include "../libs/print.h"
+#include "../../libs/keyboard.h"
+#include "../../libs/print.h"
 #include "keytest.h"
+#include "../command_registry.h"
 
 void CMD_keytest() {
     print_str("Keyboard test mode. Press keys to see their values.\n");
@@ -61,4 +62,17 @@ void CMD_keytest() {
     // Restore color and print exit message
     print_set_color(saved_color, PRINT_COLOR_BLACK);
     print_str("\nExiting keyboard test mode.\n");
+}
+
+command_t CMD_keytest_command = {
+    .name = "keytest",
+    .short_desc = "Test keyboard input",
+    .usage = "keytest",
+    .long_desc = "Enter keyboard test mode. Press keys to see their values.",
+    .examples = "keytest\n",
+    .execute = CMD_keytest
+};
+
+void CMD_init_keytest() {
+    register_command(&CMD_keytest_command);
 }

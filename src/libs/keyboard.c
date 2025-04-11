@@ -219,3 +219,11 @@ char keyboard_read_nonblocking() {
     keyboard_buffer_read = (keyboard_buffer_read + 1) % KEYBOARD_BUFFER_SIZE;
     return c;
 }
+
+char keyboard_get_char() {
+    // Wait for the keyboard buffer to be ready
+    while ((inb(KEYBOARD_STATUS_PORT) & 0x01) == 0);
+
+    // Read the character from the keyboard data port
+    return inb(KEYBOARD_DATA_PORT);
+}
