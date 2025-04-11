@@ -27,6 +27,9 @@ jobs:
     - name: Compile femboyOS
       run: docker run --rm -v ${{ github.workspace }}:/root/env ghcr.io/${{ github.repository_owner }}/femboyos-buildenv:latest make build-x86_64
 
+    - name: Chown dist dir
+      run: sudo chown -R $USER:$USER dist
+      
     - name: Compile Hashes
       run: |
         sha256sum dist/x86_64/femboyOS.iso > dist/x86_64/sha256sums.txt
