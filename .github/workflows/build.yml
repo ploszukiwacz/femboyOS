@@ -29,11 +29,12 @@ jobs:
 
     - name: Chown dist dir
       run: sudo chown -R $USER:$USER dist
-      
+
     - name: Compile Hashes
       run: |
-        sha256sum dist/x86_64/femboyOS.iso > dist/x86_64/sha256sums.txt
-        sha256sum dist/x86_64/femboyOS.bin >> dist/x86_64/sha256sums.txt
+        sha256sum dist/x86_64/femboyOS.iso | sed 's|dist/x86_64/||' > dist/x86_64/sha256sums.txt
+        sha256sum dist/x86_64/femboyOS.bin | sed 's|dist/x86_64/||' >> dist/x86_64/sha256sums.txt
+
 
     - name: Make release
       uses: softprops/action-gh-release@v2.1.0
