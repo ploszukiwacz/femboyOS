@@ -1,1 +1,0 @@
-docker build . --file buildenv/Dockerfile --tag femboyos:buildenv

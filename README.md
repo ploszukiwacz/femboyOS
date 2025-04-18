@@ -6,7 +6,7 @@ This os is not ment to be used for real world usage. This is just a silly projec
 
 ## How to build
 1. Make the docker container using `docker pull ghcr.io/ploszukiwacz/femboyos-buildenv:latest`.
-2. Compile femboyOS using `docker run --rm -it -v .:/root/env femboyos:buildenv make build-x86_64`.
+2. Compile femboyOS using `docker run --rm -it -v .:/root/env ghcr.io/ploszukiwacz/femboyos-buildenv:latest make build-x86_64`.
 3. Done
 
 ## How to run

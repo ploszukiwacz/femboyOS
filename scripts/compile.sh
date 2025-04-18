@@ -1,1 +1,1 @@
-docker run --rm -it -v .:/root/env femboyos:buildenv make build-x86_64
+docker run --rm -it -v .:/root/env ghcr.io/ploszukiwacz/femboyos-buildenv:latest make build-x86_64
