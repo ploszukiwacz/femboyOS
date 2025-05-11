@@ -1,3 +1,5 @@
+# This project is archived, see [femboyOS-v2](https://github.com/ploszukiwacz/femboyOS-v2) for the new version!
+
 # femboyOS
 My attempt at an OS :3
 
